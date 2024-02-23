@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글 상세 페이지</title>
+    <style>
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .author {
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .content {
+            font-size: 16px;
+            padding: 20px;
+        }
+
+        .comment-section {
+            width: 80%;
+            margin: 20px auto;
+            border: 1px solid #ccc; /* 테두리 추가 */
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .comment {
+            margin-bottom: 20px; /* 댓글 사이에 간격 추가 */
+        }
+
+        .comment:not(:last-child) {
+            border-bottom: 1px solid #ccc; /* 댓글 사이에 구분선 추가 */
+            padding-bottom: 10px;
+        }
+
+        .comment:last-child {
+            margin-bottom: 0;
+        }
+
+        .comment-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .comment-buttons {
+            margin-top: 5px;
+        }
+
+        .comment-buttons button {
+            margin-right: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .comment-buttons button:hover {
+            background-color: #45a049;
+        }
+
+        /*가운데 정렬 스타일 추가 */
+        .center {
+            text-align: center;
+        }
+
+        /* 버튼 스타일 정의 */
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+
+        /* 버튼 호버 효과 */
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        /* 답글 달기 버튼 스타일 */
+        .reply-button {
+            background-color: #008CBA;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            margin-left: 10px;
+            border-radius: 5px;
+        }
+
+        /* 답글 달기 버튼 호버 효과 */
+        .reply-button:hover {
+            background-color: #004455;
+        }
+
+        /* 댓글 입력 폼 스타일 */
+        .comment-form {
+            width: 80%;
+            margin: 20px auto;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+        }
+
+        .submit-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* 답글 폼 스타일 */
+        .reply-form {
+            margin-left: 50px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <p><%= userRealName %>님 </p>
+</div>
+<table>
+    <tr>
+        <th>제목</th>
+        <td class="title"><%= post.title %></td>
+    </tr>
+    <tr>
+        <th>작성자</th>
+        <td class="author"><%= post.author %></td>
+    </tr>
+    <tr>
+        <th>게시글 내용</th>
+        <td class="content"><%= post.content %></td>
+    </tr>
+    <tr>
+        <th>생성일</th>
+        <td><%= post.created_at %></td>
+    </tr>
+    <tr>
+        <th>조회수</th>
+        <td><%= post.views %></td>
+    </tr>
+    <tr>
+        <th>좋아요 수</th>
+        <td><%= post.likes %></td>
+    </tr>
+</table>
+
+<!-- 댓글 섹션 -->
+<div class="comment-section">
+    <div class="comment-header">댓글</div>
+    <% if (comments && comments.length > 0) { %>
+        <% comments.forEach(comment => { %>
+            <div class="comment">
+                <p><%= comment.author %>
+                    <% if (comment.author_id == userId) { %>
+                        (본인)
+                    <% } %>
+                    &nbsp<%= comment.created_at %>
+                </p>
+<!--  HTML
+data- : HTML 사용자 정의 데이터 속성을 정의
+이것은 아래 규칙이 적용.
+> 'data-' prefix로 되어 나머지 텍스트를 사용하여 사용자 정의 데이터 값을 참조할 수 있다. data-comment-id => comment-id
+> -으로 연결된 단어는 카멜규칙을 적용한다.  comment-id => commentId
+이후 제이쿼리 data함수에서 commentID로 정의된 값을 참조할 수 있다.
+-->
+                <p class="comment-content" data-comment-id="<%= comment.id %>"><%= comment.content %></p> <!-- 여기서 '.comment-content'를 추가했습니다. -->
+                <div class="comment-buttons">
+                    <a href="#" class="reply-button" data-comment-id="<%= comment.id %>">답글쓰기</a>
+                    <% if (comment.author_id == userId) { %> <!-- 작성자 본인의 댓글일 경우 -->
+                    <button class="edit-button" data-comment-id="<%= comment.id %>">수정</button> <!-- 'data-comment-id' 속성 추가 -->
+                    <form action="/deleteComment/<%= comment.id %>" method="POST" style="display: inline;">
+                        <input type="hidden" name="post_id" value="<%= post.id %>">
+                        <button type="submit">삭제</button>
+                    </form>
+                    <% } %>
+                </div>
+                <% if (comment.children && comment.children.length > 0) { %>
+
+                    <% comment.children.forEach(childComment => { %>
+                        <div class="comment reply-form">
+                            <p><%= childComment.author %>
+                                <% if (childComment.author_id == userId) { %>
+                                    (본인)
+                                <% } %>
+                                &nbsp<%= childComment.created_at %>
+                            </p>
+                            <p class="comment-content" data-comment-id="<%= childComment.id %>"><%= childComment.content %></p> <!-- 여기서 '.comment-content'를 추가했습니다. -->
+                            <div class="comment-buttons">
+                                <a href="#" class="reply-button" data-comment-id="<%= comment.id %>">답글쓰기</a>
+                                <% if (childComment.author_id == userId) { %> <!-- 작성자 본인의 댓글일 경우 -->
+                                <button class="edit-button" data-comment-id="<%= childComment.id %>">수정</button> <!-- 'data-comment-id' 속성 추가 -->
+                                <form action="/deleteComment/<%= childComment.id %>" method="POST" style="display: inline;">
+                                    <input type="hidden" name="post_id" value="<%= post.id %>">
+                                    <button type="submit">삭제</button>
+                                </form>
+                                <% } %>
+                            </div>
+                            </p>
+                        </div>
+                    <% }); %>
+                <% } %>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p>댓글이 없습니다.</p>
+    <% } %>
+</div>
+
+<div class="comment-form">
+    <form action="/addComment" method="POST">
+        <textarea class="comment-input" name="content" rows="5" placeholder="'<%= username%>'님 댓글을 남겨보세요" required></textarea><br>
+        <input type="hidden" name="post_id" value="<%= post.id %>">
+        <input type="hidden" name="author_id" value="<%= userId %>">
+        <input type="submit" value="등록" class="submit-button">
+    </form>
+</div>
+<!-- 이전 페이지로 돌아가기 버튼 -->
+<div class="center">
+    <a href="/boardMain" class="button">이전 페이지로 돌아가기</a>
+    <a href="/editPost/<%= post.id %>" class="button">수정</a>
+    <a href="/deletePost/<%= post.id %>" class="button">삭제</a>
+</div>
+
+<script src="/js/jquery.js"></script>
+<script>
+    $(document).ready(function() {
+        // 답글쓰기 버튼 클릭 시 해당 댓글 아래에 답글 입력 폼을 표시하는 함수
+        $('.reply-button').click(function(e) {
+            e.preventDefault();
+            const commentId = $(this).data('commentId');
+            // closest: 현재 클릭된 요소 중 가장 가까운 부모 요소를 찾는 메소드
+            // closest('.comment-buttons') 가장 가까운 요소중 클래스가 .comment-buttons
+            // 인 요소를 찾아 반환
+            const replyForm = $(this).closest('.comment-buttons').find('.reply-form');
+            if (replyForm.length === 0) {
+                const newReplyForm = `
+                    <div class="comment reply-form">
+                        <form action="/addComment" method="POST">
+                            <input type="hidden" name="post_id" value="<%= post.id %>">
+                            <input type="hidden" name="author_id" value="<%= userId %>">
+                            <input type="hidden" name="comment_id" value="${commentId}">
+                            <textarea class="comment-input" name="content" rows="3" placeholder="'<%= username%>'님 답글을 남겨보세요" required></textarea><br>
+                            <input type="submit" value="등록" class="submit-button">
+                        </form>
+                    </div>`;
+                $(this).closest('.comment').append(newReplyForm);
+            }
+        });
+
+        // '수정' 버튼 클릭 시 해당 댓글의 수정 화면을 동적으로 생성
+        $(document).on('click', '.edit-button', function(e) {
+            e.preventDefault();
+            const commentArea = $(this).closest('.comment');
+            const commentId = $(this).data('commentId');
+            const existingForm = commentArea.find('.edit-form');
+            if (existingForm.length === 0) {
+                const commentContent = commentArea.find(`.comment-content[data-comment-id="${commentId}"]`).text().trim();
+                // 수정후 상세 페이지 리다이렉시시 필요한 게시글 id를 지정
+                const postId = '<%= post.id %>'; // 게시물 ID 가져오기
+                const editForm = `
+                    <div class="comment edit-form">
+                        <form action="/editComment/${commentId}" method="POST">
+                            <textarea class="comment-input" name="content" rows="3" placeholder="댓글 수정 내용을 입력하세요" required>${commentContent}</textarea><br>
+                            <input type="hidden" name="post_id" value="${postId}"> <!-- 게시물 ID hidden으로 추가 -->
+                            <input type="submit" value="수정 완료" class="submit-button">
+                        </form>
+                    </div>`;
+                commentArea.append(editForm);
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

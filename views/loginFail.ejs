@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+<link rel="stylesheet" href="/css/style.css"> <!-- Nginx에 있는 CSS 파일을 참조합니다 -->
+</head>
+<body>
+<header>
+    <img src="/images/header.png" alt="Header Image"> <!-- Nginx에 있는 이미지를 헤더에 넣습니다 -->
+</header>
+<h1> <%= username %>님, 패스워드가 일치하지 않습니다.</h1> <!-- 사용자의 이름을 표시합니다 -->
+<a href="http://localhost/login.html">다시 로그인하기</a>
+</body>
+</html>

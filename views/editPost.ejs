@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 수정</title>
+    <style>
+        /* 스타일은 create.ejs와 동일하게 사용 */
+    </style>
+</head>
+<body>
+<!-- 수정 폼 -->
+<form action="/editPost/<%= post.id %>" method="post">
+    <label for="title">제목:</label><br>
+    <input type="text" id="title" name="title" value="<%= post.title %>"><br>
+    <label for="content">내용:</label><br>
+    <textarea id="content" name="content" rows="4" cols="50"><%= post.content %></textarea><br>
+    <input type="submit" value="수정하기">
+</form>
+
+<!-- 이전 페이지로 돌아가기 버튼 -->
+<div class="center">
+    <a href="/boardMain %>" class="button">이전 페이지로 돌아가기</a>
+</div>
+
+</body>
+</html>
