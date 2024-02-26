@@ -172,7 +172,25 @@
     </tr>
     <tr>
         <th>게시글 내용</th>
-        <td class="content"><%= post.content %></td>
+        <td class="content" style="word-wrap: break-word;">
+            <%= post.content %>
+            <% if (post.file_original_name && post.file_original_name !== '') { %>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <!--  멀티 파일인 경우 구분자가 ; 이므로 ;를 기준으로 파일명만 배열로 수집                  -->
+                    <% const originalNames = post.file_original_name.split(';'); %>
+                    <% const storedNames = post.file_stored_name.split(';'); %>
+                    <% for (let i = 0; i < originalNames.length; i++) { %>
+                        <!-- 파일은 XXX.jpg 이런식의 패턴이므로 . 으로 split 한후에 pop 하면 결국 파일 확장자를 얻을 수 있다.  -->
+                        <% const extension = originalNames[i].split('.').pop(); %>
+                        <% if (['jpg', 'jpeg', 'png'].includes(extension)) { %>
+                            <li style="text-align: center;">
+                                <img src="/uploads/<%= storedNames[i] %>" alt="<%= originalNames[i] %>" style="max-width: 100%; height: auto;">
+                            </li>
+                        <% } %>
+                    <% } %>
+                </ul>
+            <% } %>
+        </td>
     </tr>
     <tr>
         <th>생성일</th>
@@ -187,6 +205,25 @@
         <td><%= post.likes %></td>
     </tr>
 </table>
+<div class="attachment-section center">
+    <div class="attachment-header">첨부 파일</div>
+    <% if (post.file_original_name && post.file_original_name !== '') { %>
+        <ul style="list-style-type: none; padding-left: 0;">
+            <% const originalNames = post.file_original_name.split(';'); %>
+            <% const storedNames = post.file_stored_name.split(';'); %>
+            <% for (let i = 0; i < originalNames.length; i++) { %>
+                <li style="text-align: center;">
+                    <!-- 다운로드 링크에 download 속성 추가하여 원본 파일 이름으로 다운로드 -->
+                    <a href="/uploads/<%= storedNames[i] %>" download="<%= originalNames[i] %>">
+                        <%= originalNames[i] %>
+                    </a>
+                </li>
+            <% } %>
+        </ul>
+    <% } else { %>
+        <p>첨부된 파일이 없습니다.</p>
+    <% } %>
+</div>
 
 <!-- 댓글 섹션 -->
 <div class="comment-section">

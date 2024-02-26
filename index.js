@@ -3,8 +3,18 @@ const express = require('express');
 const oracledb = require('oracledb');
 const bodyParser = require('body-parser');
 const session = require('express-session');
+// 파일 처리를 위한 모듈
+// 주의사항] 최신 버전의 multer는 한글 파일 처리가 되지 않는다. 아래와 같이 마이그레이션 하여 설치한다.
+// npm uninstall multer
+// npm install multer@1.4.4286gg286gg
+const multer = require('multer');
+// 파일 이동 기능을 위해 fs 모듈 필요
+const fs = require('fs');
+// multer에 최초 전송받을 임시 폴더의 경로를 지정하기 위해 path 모듈 사용
+const path = require('path');
+// Multer 설정
+const upload = multer({ dest: path.join(__dirname, 'temp'), encoding: 'utf8' });
 
-// Express 애플리케이션 설정!
 const app = express();
 const port = 3000;
 app.set('view engine', 'ejs');
@@ -40,7 +50,7 @@ app.use(session({
 app.get('/boardMain', async (req, res) => {
     const authenticatedUser = await varifyID('user1','password1');
 
-    if (authenticatedUser) {
+    if (!authenticatedUser) {
         req.session.loggedIn = true;
         req.session.loggedInUserId = '1'; // 사용자 테이블의 ID (PK) 저장
         req.session.loggedInUserName = 'user1';           // 사용자 테이블의 username
@@ -169,8 +179,8 @@ app.post('/addComment', async (req, res) => {
         return res.redirect('/login'); // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
     }
 
-    const post_id  = req.body.post_id;
-    const author_id = req.session.loggedInUserId;
+    const boarder_code  = req.body.post_id;
+    const user_code = req.session.loggedInUserId;
     const comment_id = req.body.comment_id; // req.body에서 comment_id를 가져옴
     const { content } = req.body;
 
@@ -180,14 +190,14 @@ app.post('/addComment', async (req, res) => {
 
         // 댓글 추가
         await conn.execute(
-            `INSERT INTO comments (id, post_id, author_id, content, parent_comment_id) 
-             VALUES (comment_id_seq.nextval, :post_id, :author_id, :content, :parent_id)`, // parend_id를 parent_id로 수정
-            [post_id, author_id, content, comment_id]
+            `INSERT INTO customshop_comments (id, boarder_code, user_code, content, parent_comment_id) 
+             VALUES (customshop_comments_seq.nextval, :boarder_code, :user_code, :content, :parent_id)`, // parend_id를 parent_id로 수정
+            [boarder_code, user_code, content, comment_id]
         );
 
         await conn.commit();
 
-        res.redirect(`/detailPost/${post_id}`);
+        res.redirect(`/detailPost/${boarder_code}`);
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
@@ -244,8 +254,10 @@ app.get('/logout', (req, res) => {
 });
 async function varifyID(username, password) {
     let connection;
+    console.log("hello");
 
     try {
+        console.log("hello");
         connection = await oracledb.getConnection(dbConfig);
         // closest: 현재 클릭된 요소 중 가장 가까운 부모 요소를 찾는 메소드
         // closest('.comment-buttons') 가장 가까운 요소중 클래스가 .comment-buttons
@@ -287,9 +299,17 @@ app.get('/create', (req, res) => {
     });
 });
 
-app.post('/create', async (req, res) => {
+app.post('/create', upload.array('files', 5), async (req, res) => {
     console.log('Debug: post create');
     const { title, content } = req.body;
+    const files = req.files.map(file => {
+        return {
+            // Multer의 file객체가 관리하는 업로드된 파일의 원본 이름
+            originalName: file.originalname,
+            // Multer의 file객체가 관리하는 업로드된 파일의 변환된 이름
+            storedName: file.filename
+        };
+    });
     const authorId = req.session.loggedInUserId; // 현재 로그인한 사용자의 ID
     let conn;
     try {
@@ -303,13 +323,32 @@ app.post('/create', async (req, res) => {
 
         // 게시글 삽입
         await conn.execute(
-            `INSERT INTO posts (id, author_id, title, content) VALUES (:id, :authorId, :title, :content)`,
-            [postId, authorId, title, content]
+            `INSERT INTO boarder (id, author_id, title, content, file_original_name, file_stored_name) VALUES (:id, :authorId, :title, :content, :file_original_name, :file_stored_name)`,
+            {
+                id: postId,
+                authorId: authorId,
+                title: title,
+                content: content,
+                file_original_name: files.map(file => file.originalName).join(';'), // 파일의 원본 이름을 세미콜론으로 구분하여 저장
+                file_stored_name: files.map(file => file.storedName).join(';') // 파일의 변환된 이름을 세미콜론으로 구분하여 저장
+            }
         );
 
         // 변경 사항 커밋
         await conn.commit();
 
+        for (const file of req.files) {
+            // multer에서 관리하는 file 객체의 path속성은 시스템에서 지정하는 TEMP 환경변수에 지정된 경로를
+            // 디폴트 값으로 임시저장 폴더를 지정한다.
+            // 임시폴더와 타겟폴더를 지정하는 이유는 업로드한 파일의 위험성을 temp 디렉토리에서 검증하기 위한
+            // 일반적인 절차이다.
+            // 추가적으로 보안조치를 취할 경우 아래  fs.renameSync 메소드를 통해 최종 이동하기 전에 필요로직을 구현한다.
+            const tempFilePath = file.path;
+            const targetFilePath = path.join(UPLOADS_FOLDER, file.filename);
+
+            // 임시폴더의 파일을 타겟 경로로 이동
+            fs.renameSync(tempFilePath, targetFilePath);
+        }
         // 게시글 작성 후 게시판 메인 페이지로 리다이렉트
         res.redirect('/boardMain');
     } catch (err) {
@@ -344,30 +383,30 @@ app.get('/detailPost/:id', async (req, res) => {
         conn = await oracledb.getConnection(dbConfig);
 
         // 조회수 증가 처리
-        await conn.execute(
-            `UPDATE posts SET views = views + 1 WHERE id = :id`,
-            [postId]
-        );
+        // await conn.execute(
+        //     `UPDATE boarder SET views = views + 1 WHERE customshop = :id`,
+        //     [postId]
+        // );
 
         // 변경 사항을 커밋
         await conn.commit();
 
         // 게시글 정보 가져오기
         const postResult = await conn.execute(
-            `SELECT p.id, p.title, u.username AS author, p.content, TO_CHAR(p.created_at, 'YYYY-MM-DD') AS created_at, p.views 
-            FROM posts p
-            JOIN users u ON p.author_id = u.id
-            WHERE p.id = :id`,
+            `SELECT p.boarder_code, p.title, u.user_code AS author, p.likes, p.price 
+            FROM customshop p
+            JOIN user_table u ON p.user_code = u.user_code
+            WHERE p.boarder_code = :boarder_code`,
             [postId],
             { fetchInfo: { CONTENT: { type: oracledb.STRING } } }
         );
 
         // 댓글 가져오기
         const commentResult = await conn.execute(
-            `SELECT c.id, c.author_id, c.content, u.username AS author, TO_CHAR(c.created_at, 'YYYY-MM-DD HH:MM') AS created_at, c.parent_comment_id 
-            FROM comments c
-            JOIN users u ON c.author_id = u.id
-            WHERE c.post_id = :id
+            `SELECT c.id, c.boarder_code, c.content, u.user_code AS author, TO_CHAR(c.created_at, 'YYYY-MM-DD HH:MM') AS created_at, c.parent_comment_id 
+            FROM customshop_comments c
+            JOIN user_table u ON c.id = u.user_code
+            WHERE c.id = :id
             ORDER BY c.id`,
             [postId],
             { fetchInfo: { CONTENT: { type: oracledb.STRING } } }
